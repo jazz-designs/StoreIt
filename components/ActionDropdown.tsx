@@ -25,19 +25,39 @@ import { actionsDropdownItems } from "@/constants";
 import { constructDownloadUrl } from "@/lib/utils";
 import Link from "next/link";
 import { Input } from "./ui/input";
+import { renameFile } from "@/lib/actions/file.actions";
+import { usePathname } from "next/navigation";
+import { FileDetails } from "./actionsModalContent";
+
 const ActionDropdown = ({ file }: { file: Models.Document }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDropdwonOpen, setIsDropdwonOpen] = useState(false);
   const [action, setAction] = useState<ActionType | null>(null);
   const [name, setName] = useState(file.name);
   const [isLoading, setIsLoading] = useState(false);
+
+  const path = usePathname();
+
   const closeAllModals = () => {
     setIsModalOpen(false);
     setIsDropdwonOpen(false);
     setAction(null);
     setName(file.name);
   };
-  const handleAction = async () => {};
+  const handleAction = async () => {
+    if (!action) return;
+    setIsLoading(true);
+    let success = false;
+    const actions = {
+      rename: () =>
+        renameFile({ fileId: file.$id, name, extension: file.extension, path }),
+      share: () => console.log("share"),
+      delete: () => console.log("delete"),
+    };
+    success = await actions[action.value as keyof typeof actions]();
+    if (success) closeAllModals();
+    setIsLoading(false);
+  };
   const renderDialogContent = () => {
     if (!action) return null;
     const { value, label } = action;
@@ -54,6 +74,7 @@ const ActionDropdown = ({ file }: { file: Models.Document }) => {
               onChange={(e) => setName(e.target.value)}
             />
           )}
+          {value === "details" && <FileDetails file={file} />}
         </DialogHeader>
         {["rename", "delete", "share"].includes(value) && (
           <DialogFooter className="flex flex-col gap-3 md:flex-row">
